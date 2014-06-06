@@ -6,21 +6,25 @@ import json
 import sys
 # There is an generic json-rpc implemantation in Python but it dose not work for me in this case so I worte Some functions
 
+from credenciales import usuario,clave
+
 urlBase = "http://encuestas.proyectokoala.org/index.php/admin/remotecontrol"
+def list_surveys(session_key):
+    data = """{ "method: "list_surveys",
+                "params": { "sSessionKey": "%s", "sUser": "%s" },
+                "id" : 1 }""" % (session_key, usuario)
 
 
 def get_session_key():
-    print "Request"
-    data='{\"method\":\"get_session_key\",\"params\":{\"username\":\"' + usuario +'\",\"password\":\"'+clave+'\"},\"id\":1}'
-    print data
+    data=" { \"method\":\"get_session_key\", \"params\": { \"username\": \"%s\", \"password\": \"%s\" }, \"id\" : 1 }" % (usuario, clave)
 
     req = urllib2.Request(url=urlBase,data=data)
     req.add_header('content-type', 'application/json')
     req.add_header('connection', 'Keep-Alive')
+
     try:
         f = urllib2.urlopen(req)
         myretun = f.read()
-        print myretun
         j=json.loads(myretun)
         return j['result']
     except :
@@ -83,4 +87,6 @@ mykey=get_session_key()
 print "Obtuve",mykey
 #print export_responses2(mykey,'566237').decode('base64')
 #get_question_properties(mykey,'574')
-print release_session_key(mykey)
+
+if mykey is not None:
+    print release_session_key(mykey)
