@@ -3,11 +3,12 @@
 import urllib2
 import json
 import sys
+
+import base64 #para encodear la subida de surveys
+
 # There is an generic json-rpc implemantation in Python but it dose not work for me in this case so I worte Some functions
 
-from credenciales import usuario,clave
-
-urlBase = "http://encuestas.proyectokoala.org/index.php/admin/remotecontrol"
+from credenciales import usuario,clave,urlBase
 
 
 def _generarRequest(url,data):
@@ -47,6 +48,26 @@ def _list_surveys(session_key):
         e = sys.exc_info()[0]
         print ( "<p>Error: %s</p>" % e )
 
+def import_survey(session_key,datos,titulo,sid):
+    data = """{ "id": 1,
+                "method": "import_survey",
+                "params": { "sSessionKey": "%s",
+                            "sImportData": "%s",
+                            "sImportDataType": "lss",
+                            "sNewSurveyName": "%s",
+                            "DestSurveyID": %d } }""" % (session_key, datos, titulo, sid)
+
+    req = _generarRequest(urlBase,data)
+
+    try:
+        f = urllib2.urlopen(req)
+        myretun = f.read()
+        j=json.loads(myretun)
+        return j['result']
+
+    except:
+        e = sys.exc_info()[0]
+        print ( "<p>Error: %s</p>" % e )
 
 
 def get_session_key():
@@ -127,9 +148,9 @@ mykey=get_session_key()
 if mykey is not None:
     print "Obtuve",mykey
 
-    encuestas=list_surveys(mykey)
+    with open('./limesurvey_survey_465943.lss', 'rb') as f:
+        encoded_string = base64.b64encode(f.read())
 
-    for encuesta in encuestas:
-        print encuesta
+    print import_survey(mykey,encoded_string,"prueba",465000)
 
-    print release_session_key(mykey)
+    release_session_key(mykey)
