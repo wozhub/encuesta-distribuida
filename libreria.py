@@ -5,17 +5,24 @@ import json
 import sys
 from csv import DictReader
 
-import base64 #para encodear la subida de surveys
 
 from credenciales import usuario,clave,urlBase
 
 
-def _generarRequest(url,data):
+def _obtenerJson(url,data):
     print data
     req = urllib2.Request(url=urlBase,data=data)
     req.add_header('content-type', 'application/json')
     req.add_header('connection', 'Keep-Alive')
-    return req
+
+    try:
+        f = urllib2.urlopen(req)
+        myretun = f.read()
+        return json.loads(myretun)
+
+    except:
+        e = sys.exc_info()[0]
+        print ( "<p>Error: %s</p>" % e )
 
 
 def list_surveys(session_key):
@@ -35,17 +42,15 @@ def _list_surveys(session_key):
                 "method": "list_surveys",
                 "params": { "sSessionKey": "%s" } }""" % (session_key)
 
-    req = _generarRequest(urlBase,data)
+    return _obtenerJson(urlBase,data)
 
-    try:
-        f = urllib2.urlopen(req)
-        myretun = f.read()
-        j=json.loads(myretun)
-        return j['result']
 
-    except:
-        e = sys.exc_info()[0]
-        print ( "<p>Error: %s</p>" % e )
+def activate_survey(session_key,sid):
+    data = """{ "id": 1,
+                "method": "activate_survey",
+                "params": { "sSessionKey": "%s",
+                            "SurveyID": %d } }""" % (session_key,sid)
+    return _obtenerJson(urlBase,data)
 
 
 def import_survey(session_key,datos,titulo,sid):
@@ -56,18 +61,7 @@ def import_survey(session_key,datos,titulo,sid):
                             "sImportDataType": "lss",
                             "sNewSurveyName": "%s",
                             "DestSurveyID": %d } }""" % (session_key, datos, titulo, sid)
-
-    req = _generarRequest(urlBase,data)
-
-    try:
-        f = urllib2.urlopen(req)
-        myretun = f.read()
-        j=json.loads(myretun)
-        return j['result']
-
-    except:
-        e = sys.exc_info()[0]
-        print ( "<p>Error: %s</p>" % e )
+    return _obtenerJson(urlBase,data)['result']
 
 
 def get_session_key():
@@ -75,33 +69,14 @@ def get_session_key():
                 "method": "get_session_key",
                 "params": { "username": "%s",
                             "password": "%s" } } """ % (usuario, clave)
-
-    req = _generarRequest(urlBase,data)
-
-    try:
-        f = urllib2.urlopen(req)
-        myretun = f.read()
-        j=json.loads(myretun)
-        return j['result']
-    except:
-        e = sys.exc_info()[0]
-        print ( "<p>Error: %s</p>" % e )
+    return _obtenerJson(urlBase,data)['result']
 
 
-def release_session_key(relkey):
-    req = urllib2.Request(url=urlBase,\
-                          data='{\"method\":\"release_session_key\",\"params\":{\"sSessionKey\":\"'+relkey+'\"},\"id\":1}')
-    req.add_header('content-type', 'application/json')
-    req.add_header('connection', 'Keep-Alive')
-    try:
-        f = urllib2.urlopen(req)
-        myretun = f.read()
-        #print myretun
-        j=json.loads(myretun)
-        return j['result']
-    except :
-        e = sys.exc_info()[0]
-        print ( "<p>Error: %s</p>" % e )
+def release_session_key(session_key):
+    data = """ { "method": "release_session_key",
+                 "params": { "sSessionKey" : "%s"},
+                 "id":1}' }""" % (session_key)
+    return _obtenerJson(urlBase,data)['result']
 
 
 def export_responses(session_key,sid):
@@ -109,23 +84,23 @@ def export_responses(session_key,sid):
                         "params": { "sSessionKey": "%s",
                                     "iSurveyID":  %d,
                                     "DocumentType": "csv",
-                                    "sLanguageCode": "de",
+                                    "ResponseType": "long",
                                     "sHeadingType": "full" },
                         "id": 1 } """ % (session_key,sid)
+    return _obtenerJson(urlBase,data)['result']
 
-    req = _generarRequest(urlBase,data)
 
-    try:
-        f = urllib2.urlopen(req)
-        myretun = f.read()
-        j=json.loads(myretun)
-        return j['result']
-    except :
-        e = sys.exc_info()[0]
-        print ( "<p>Error: %s</p>" % e )
+def _add_response(session_key,sid,datos):
+    data=""" {          "method":"add_response",
+                        "params": { "sSessionKey": "%s",
+                                    "iSurveyID": %d,
+                                    "aResponseData": %s },
+                        "id": 1 } """ % (session_key,sid,datos)
+    return _obtenerJson(urlBase,data)['result']
+
 
 def importar_desde_archivo(session_key,sid,archivo):
     respuestas = DictReader(open(archivo))
 
     for r in respuestas:
-        print json.dumps(r)
+        print "Cargada la respuesta %d en %d" % (_add_response(session_key,sid,json.dumps(r)),sid)
