@@ -5,13 +5,11 @@ import json
 import sys
 from csv import DictReader
 
-
 from credenciales import usuario,clave,urlBase
 
-
 def _obtenerJson(url,data):
-    print data
-    req = urllib2.Request(url=urlBase,data=data)
+    #print data
+    req = urllib2.Request(url=url,data=data)
     req.add_header('content-type', 'application/json')
     req.add_header('connection', 'Keep-Alive')
 
@@ -42,7 +40,7 @@ def _list_surveys(session_key):
                 "method": "list_surveys",
                 "params": { "sSessionKey": "%s" } }""" % (session_key)
 
-    return _obtenerJson(urlBase,data)
+    return _obtenerJson(urlBase,data)['result']
 
 
 def activate_survey(session_key,sid):
@@ -50,7 +48,7 @@ def activate_survey(session_key,sid):
                 "method": "activate_survey",
                 "params": { "sSessionKey": "%s",
                             "SurveyID": %d } }""" % (session_key,sid)
-    return _obtenerJson(urlBase,data)
+    return _obtenerJson(urlBase,data)['result']
 
 
 def import_survey(session_key,datos,titulo,sid):
@@ -103,4 +101,5 @@ def importar_desde_archivo(session_key,sid,archivo):
     respuestas = DictReader(open(archivo))
 
     for r in respuestas:
-        print "Cargada la respuesta %d en %d" % (_add_response(session_key,sid,json.dumps(r)),sid)
+        _add_response(session_key,sid,json.dumps(r))
+
