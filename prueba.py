@@ -7,7 +7,9 @@ import sys
 # There is an generic json-rpc implemantation in Python but it dose not work for me in this case so I worte Some functions
 
 from credenciales import usuario,clave
+
 urlBase = "http://encuestas.proyectokoala.org/index.php/admin/remotecontrol"
+
 
 def _generarRequest(url,data):
     print data
@@ -16,7 +18,20 @@ def _generarRequest(url,data):
     req.add_header('connection', 'Keep-Alive')
     return req
 
+
 def list_surveys(session_key):
+    json_list_surveys = _list_surveys(session_key)
+
+    encuestas=[]
+    for e in json_list_surveys:
+        encuesta=e['sid'],e['surveyls_title'] # Me quedo con el SID y el Titulo
+        encuestas.append(encuesta)
+
+    return encuestas
+
+
+def _list_surveys(session_key):
+    """Devuelve el JSON ENTERO"""
     data = """{ "id": 1,
                 "method": "list_surveys",
                 "params": { "sSessionKey": "%s" } }""" % (session_key)
@@ -27,13 +42,7 @@ def list_surveys(session_key):
         f = urllib2.urlopen(req)
         myretun = f.read()
         j=json.loads(myretun)
-
-        encuestas=[]
-        for encuesta in j['result']:
-            e=encuesta['sid'],encuesta['title']
-            encuestas.append(e)
-
-        return encuestas
+        return j['result']
 
     except:
         e = sys.exc_info()[0]
@@ -42,11 +51,10 @@ def list_surveys(session_key):
 
 
 def get_session_key():
-    data="""{
+    data="""{   "id": 1,
                 "method": "get_session_key",
                 "params": { "username": "%s",
-                            "password": "%s" },
-                "id" : 1 } """ % (usuario, clave)
+                            "password": "%s" } } """ % (usuario, clave)
 
     req = _generarRequest(urlBase,data)
 
@@ -119,9 +127,10 @@ mykey=get_session_key()
 
 if mykey is not None:
     print "Obtuve",mykey
+
     encuestas=list_surveys(mykey)
 
-    for e in encuestas:
-        print e['sid']
+    for encuesta in encuestas:
+        print encuesta
 
     print release_session_key(mykey)
