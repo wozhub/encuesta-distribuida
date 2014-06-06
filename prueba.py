@@ -7,29 +7,58 @@ import sys
 # There is an generic json-rpc implemantation in Python but it dose not work for me in this case so I worte Some functions
 
 from credenciales import usuario,clave
-
 urlBase = "http://encuestas.proyectokoala.org/index.php/admin/remotecontrol"
-def list_surveys(session_key):
-    data = """{ "method: "list_surveys",
-                "params": { "sSessionKey": "%s", "sUser": "%s" },
-                "id" : 1 }""" % (session_key, usuario)
 
-
-def get_session_key():
-    data=" { \"method\":\"get_session_key\", \"params\": { \"username\": \"%s\", \"password\": \"%s\" }, \"id\" : 1 }" % (usuario, clave)
-
+def _generarRequest(url,data):
+    print data
     req = urllib2.Request(url=urlBase,data=data)
     req.add_header('content-type', 'application/json')
     req.add_header('connection', 'Keep-Alive')
+    return req
+
+def list_surveys(session_key):
+    data = """{ "id": 1,
+                "method": "list_surveys",
+                "params": { "sSessionKey": "%s" } }""" % (session_key)
+
+    req = _generarRequest(urlBase,data)
+
+    try:
+        f = urllib2.urlopen(req)
+        myretun = f.read()
+        j=json.loads(myretun)
+
+        encuestas=[]
+        for encuesta in j['result']:
+            e=encuesta['sid'],encuesta['title']
+            encuestas.append(e)
+
+        return encuestas
+
+    except:
+        e = sys.exc_info()[0]
+        print ( "<p>Error: %s</p>" % e )
+
+
+
+def get_session_key():
+    data="""{
+                "method": "get_session_key",
+                "params": { "username": "%s",
+                            "password": "%s" },
+                "id" : 1 } """ % (usuario, clave)
+
+    req = _generarRequest(urlBase,data)
 
     try:
         f = urllib2.urlopen(req)
         myretun = f.read()
         j=json.loads(myretun)
         return j['result']
-    except :
+    except:
         e = sys.exc_info()[0]
         print ( "<p>Error: %s</p>" % e )
+
 
 def get_question_properties(skey,QuestionID):
     req = urllib2.Request(url=urlBase,\
@@ -84,9 +113,15 @@ def export_responses2(skey,sid):
 
 
 mykey=get_session_key()
-print "Obtuve",mykey
+
 #print export_responses2(mykey,'566237').decode('base64')
 #get_question_properties(mykey,'574')
 
 if mykey is not None:
+    print "Obtuve",mykey
+    encuestas=list_surveys(mykey)
+
+    for e in encuestas:
+        print e['sid']
+
     print release_session_key(mykey)
